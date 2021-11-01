@@ -108,6 +108,18 @@ def kakao_ocr(request, content=None):
 
 
         result['status'] = 'OK'
+        result['n_results'] = 2
+        result['results'] = {
+            '0': {
+                'area_code': 0,
+                'numbers': '37891357'
+            },
+            '1': {
+                'area_code': 1,
+                'numbers': '0314945225'
+            }
+        }
+
 
     # conn.close()
     return JsonResponse(result)
