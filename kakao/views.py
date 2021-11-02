@@ -7,6 +7,7 @@ import sqlite3
 import datetime
 from PIL import Image
 from .utils import *
+from .recog_utils import *
 from django.shortcuts import render
 from django.conf import settings
 from django.core.files.storage import default_storage
@@ -27,7 +28,7 @@ def kakao_ocr(request, content=None):
         ori_img = request.FILES.get('img')
 
         ''' Set the path '''
-        currtime = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '')
+        currtime = str(datetime.datetime.now()).replace('.', '_').replace(' ', '_').replace(':', '')
         ori_img_dir = 'ori/'
         resized_img_dir = 'resized/'
         result_img_dir = 'result/'
@@ -64,19 +65,14 @@ def kakao_ocr(request, content=None):
         ''' Save result img with Bbox '''
         detected_words = output.json()['result']
         new_detected_words = convert_bbox_scale(detected_words, ratio)
-        print(new_detected_words)
+        # print(new_detected_words)
 
         result_img = Image.open(abs_ori_img_path)
         for box in new_detected_words:
             result_img = pil_draw_box(result_img, box['boxes'])
         result_img.save(abs_result_img_path)
-        
 
-
-        # rotation(abs_ori_img_path)
-
-
-
+        detected_pn = pn_detector(output.json())
 
         # ''' Save request data to DB '''
         # conn = sqlite3.connect("/home/skygun/hci_server/hci_back/db.sqlite3")
@@ -108,17 +104,7 @@ def kakao_ocr(request, content=None):
 
 
         result['status'] = 'OK'
-        result['n_results'] = 2
-        result['results'] = {
-            '0': {
-                'area_code': 0,
-                'numbers': '37891357'
-            },
-            '1': {
-                'area_code': 1,
-                'numbers': '0314945225'
-            }
-        }
+        result = {**result, **detected_pn}
 
 
     # conn.close()

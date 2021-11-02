@@ -8,6 +8,12 @@ LIMIT_BYTE = 1024*1024  # 1MB
 LIMIT_BOX = 40
 APP_KEY = '635970f007a450262909ce0a833104fb'
 
+
+# class for whole JSON output
+
+
+
+
 def kakao_api_request(image_path):
     API_URL = 'https://dapi.kakao.com/v2/vision/text/ocr'
 
@@ -54,3 +60,32 @@ def convert_bbox_scale(detected_words, ratio):
         new_boxes = tuple(map(lambda x: tuple(map(lambda y: y*scale,x)), word['boxes']))
         result.append({'boxes': new_boxes, 'recognition_words': word['recognition_words']})
     return result
+
+def checkAreaCode(tel):
+	if len(tel) < 7 or len(tel) > 11:
+		return -1
+	# case for no area code
+	if len(tel) == 7 or len(tel) == 8:
+		return ""
+	# case for seoul number with 7-digit
+	if len(tel) == 9:
+		if tel[:2] == "02":
+			return "02"
+		else:
+			return -1
+	# case for seoul number with 8-digit
+	if len(tel) == 10:
+		if tel[:2] == "02":
+			return "02"
+	# case for non-seoul number with 7/8 digit
+	if tel[:3] == "010":
+		return "010"
+	if tel[:2] == "03" and (int(tel[2:3]) <= 3 and int(tel[2:3]) >= 1):
+		return tel[:3]
+	if tel[:2] == "04" and (int(tel[2:3]) <= 4 and int(tel[2:3]) >= 1):
+		return tel[:3]
+	if tel[:2] == "05" and (int(tel[2:3]) <= 5 and int(tel[2:3]) >= 1):
+		return tel[:3]
+	if tel[:2] == "06" and (int(tel[2:3]) <= 4 and int(tel[2:3]) >= 1):
+		return tel[:3]
+	return -1
