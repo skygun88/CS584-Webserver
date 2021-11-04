@@ -1,4 +1,5 @@
 import os
+from sqlite3.dbapi2 import Timestamp
 import sys
 import json
 import time
@@ -53,119 +54,129 @@ def kakao_ocr(request, content=None):
         abs_resized_img_path = abs_resized_img_dir+currtime+'.jpg'
         abs_result_img_path = abs_result_img_dir+currtime+'.jpg'
         
-        ''' Save received image & Resize the image '''
-        default_storage.save(abs_ori_img_path, ContentFile(ori_img.read()))
-        ratio = kakao_ocr_resize(abs_ori_img_path, abs_resized_img_path)
+        try:
+            ''' Save received image & Resize the image '''
+            default_storage.save(abs_ori_img_path, ContentFile(ori_img.read()))
+            ratio = kakao_ocr_resize(abs_ori_img_path, abs_resized_img_path)
 
-        ''' OCR processing through KaKao API '''
-        output = kakao_api_request(abs_resized_img_path)
-        fail_cnt = 0
-        while output.status_code != 200:
-            fail_cnt += 1
-            if fail_cnt > 5:
-                return JsonResponse(result)
-            time.sleep(10)
+            ''' OCR processing through KaKao API '''
             output = kakao_api_request(abs_resized_img_path)
-        
-        ''' Save result img with Bbox '''
-        detected_words = output.json()['result']
-        new_output = {'result': convert_bbox_scale(detected_words, ratio)}
-        # print(new_detected_words)
+            fail_cnt = 0
+            while output.status_code != 200:
+                fail_cnt += 1
+                if fail_cnt > 5:
+                    return JsonResponse(result)
+                time.sleep(10)
+                output = kakao_api_request(abs_resized_img_path)
+            
+            ''' Save result img with Bbox '''
+            detected_words = output.json()['result']
+            new_output = {'result': convert_bbox_scale(detected_words, ratio)}
+            # print(new_detected_words)
 
-        result_img = Image.open(abs_ori_img_path)
-        for box in new_output['result']:
-            result_img = pil_draw_box(result_img, box['boxes'])
-        result_img.save(abs_result_img_path)
+            result_img = Image.open(abs_ori_img_path)
+            for box in new_output['result']:
+                result_img = pil_draw_box(result_img, box['boxes'])
+            result_img.save(abs_result_img_path)
 
-        detected_pn = pn_detector(new_output)
+            detected_pn = pn_detector(new_output)
+        except Exception as e:
+            print(e)
+            return JsonResponse(result)
 
-
-
-        ''' Save data to DB '''
-        conn = sqlite3.connect("/home/skygun/hci_server/hci_back/db.sqlite3")
-        cur = conn.cursor()
-
-        # Calculate request_index
-        cur.execute(f"SELECT request_index FROM kakao_requestinfo;")
-        idx_list = list(map(lambda x: x[0], cur.fetchall()))
-        request_index = 0
-        if len(idx_list) != 0:
-            for idx in idx_list:
-                if idx > request_index:
-                    break
-                request_index += 1
-
-        # Organize the data format
-        request_data = (request_index, # request_index
-                        user_id, # user_id
-                        abs_ori_img_path, # ori_img_path
-                        abs_resized_img_path, # resized_img_path
-                        abs_result_img_path, # result_img_path
-                        detected_pn['n_results'], # detected_numbers
-                        False, # is_response
-                        -1, # selected_pn_index
-                        -1, # timestamp1
-                        -1, # timestamp2
-                        -1, # timestamp3
-                        -1, # timestamp4
-                        )
-
-        # save request data to RequestInfo Table
-        cur.execute('INSERT INTO kakao_requestinfo (request_index, \
-                                                        user_id, \
-                                                        ori_img_path, \
-                                                        resized_img_path, \
-                                                        result_img_path, \
-                                                        detected_numbers, \
-                                                        is_response, \
-                                                        selected_pn_index, \
-                                                        timestamp1, \
-                                                        timestamp2, \
-                                                        timestamp3, \
-                                                        timestamp4) \
-                                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);', request_data)
-        conn.commit()
-
-
-        for number_index, pn in enumerate(detected_pn['results']):
-            is_area_code = True if pn['area_code'] == 1 else False
-            number = pn['numbers']
-            pos1_x, pos1_y = pn['boxes'][0][0], pn['boxes'][0][1]
-            pos2_x, pos2_y = pn['boxes'][1][0], pn['boxes'][1][1]
-            pos3_x, pos3_y = pn['boxes'][2][0], pn['boxes'][2][1]
-            pos4_x, pos4_y = pn['boxes'][3][0], pn['boxes'][3][1]
-
-            detected_numbers_data = (request_index, 
-                                        number_index, 
-                                        is_area_code, 
-                                        number, 
-                                        pos1_x, 
-                                        pos1_y, 
-                                        pos2_x, 
-                                        pos2_y, 
-                                        pos3_x, 
-                                        pos3_y, 
-                                        pos4_x, 
-                                        pos4_y, 
-                                        )
+        try:
+            ''' Save data to DB '''
+            conn = sqlite3.connect("/home/skygun/hci_server/hci_back/db.sqlite3")
             cur = conn.cursor()
-            cur.execute('INSERT INTO kakao_detectednumbers (request_index, \
-                                                        number_index, \
-                                                        is_area_code, \
-                                                        number, \
-                                                        pos1_x, \
-                                                        pos1_y, \
-                                                        pos2_x, \
-                                                        pos2_y, \
-                                                        pos3_x, \
-                                                        pos3_y, \
-                                                        pos4_x, \
-                                                        pos4_y) \
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);', detected_numbers_data)
+
+            # Calculate request_index
+            cur.execute(f"SELECT request_index FROM kakao_requestinfo;")
+            idx_list = list(map(lambda x: x[0], cur.fetchall()))
+            request_index = 0
+            if len(idx_list) != 0:
+                for idx in idx_list:
+                    if idx > request_index:
+                        break
+                    request_index += 1
+
+            # Organize the data format
+            request_data = (request_index, # request_index
+                            user_id, # user_id
+                            abs_ori_img_path, # ori_img_path
+                            abs_resized_img_path, # resized_img_path
+                            abs_result_img_path, # result_img_path
+                            detected_pn['n_results'], # detected_numbers
+                            False, # is_response
+                            -1, # selected_pn_index
+                            -1, # timestamp1
+                            -1, # timestamp2
+                            -1, # timestamp3
+                            -1, # timestamp4
+                            )
+
+            # save request data to RequestInfo Table
+            cur.execute('''INSERT INTO kakao_requestinfo (request_index, 
+                                                            user_id, 
+                                                            ori_img_path, 
+                                                            resized_img_path, 
+                                                            result_img_path, 
+                                                            detected_numbers, 
+                                                            is_response, 
+                                                            selected_pn_index, 
+                                                            timestamp1, 
+                                                            timestamp2, 
+                                                            timestamp3, 
+                                                            timestamp4) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);''', request_data)
             conn.commit()
+        except Exception as e:
+            print(e)
+            return JsonResponse(result)
 
+        try:
+            for number_index, pn in enumerate(detected_pn['results']):
+                is_area_code = True if pn['area_code'] == 1 else False
+                number = pn['numbers']
+                pos1_x, pos1_y = pn['boxes'][0][0], pn['boxes'][0][1]
+                pos2_x, pos2_y = pn['boxes'][1][0], pn['boxes'][1][1]
+                pos3_x, pos3_y = pn['boxes'][2][0], pn['boxes'][2][1]
+                pos4_x, pos4_y = pn['boxes'][3][0], pn['boxes'][3][1]
 
+                detected_numbers_data = (request_index, 
+                                            number_index, 
+                                            is_area_code, 
+                                            number, 
+                                            pos1_x, 
+                                            pos1_y, 
+                                            pos2_x, 
+                                            pos2_y, 
+                                            pos3_x, 
+                                            pos3_y, 
+                                            pos4_x, 
+                                            pos4_y, 
+                                            )
+                cur = conn.cursor()
+                cur.execute('''INSERT INTO kakao_detectednumbers (request_index, 
+                                                                    number_index, 
+                                                                    is_area_code, 
+                                                                    number, 
+                                                                    pos1_x, 
+                                                                    pos1_y, 
+                                                                    pos2_x, 
+                                                                    pos2_y, 
+                                                                    pos3_x, 
+                                                                    pos3_y, 
+                                                                    pos4_x, 
+                                                                    pos4_y) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);''', detected_numbers_data)
+                conn.commit()
+        except Exception as e:
+            print(e)
+            return JsonResponse(result)
+
+        conn.close()
         result['status'] = 'OK'
+        result['index'] = request_index
         result = {**result, **detected_pn}
 
     # conn.close()
@@ -174,8 +185,40 @@ def kakao_ocr(request, content=None):
 
 @method_decorator(csrf_exempt, name='dispatch')
 def user_data(request, content=None):
+    print('user_data API executed')
     result = {'status': 'FAIL'}
     if request.method == 'POST':
+        request_dict = json.loads(request.body)
+        print(request_dict)
+        request_index = request_dict.get('index')
+        timestamp1 = request_dict.get('timestamp1')
+        timestamp2 = request_dict.get('timestamp2')
+        timestamp3 = request_dict.get('timestamp3')
+        timestamp4 = request_dict.get('timestamp4')
+        selected_pn_index = request_dict.get('position')
+        selected_number = request_dict.get('numbers')
+
+        print(request_index, type(request_index))
+        try:
+            ''' Save data to DB '''
+            conn = sqlite3.connect("/home/skygun/hci_server/hci_back/db.sqlite3")
+            cur = conn.cursor()
+
+            # Calculate request_index
+            cur.execute(f'''UPDATE kakao_requestinfo 
+                            SET  
+                            is_response=True,  
+                            selected_pn_index={selected_pn_index}, 
+                            timestamp1={timestamp1}, 
+                            timestamp2={timestamp2}, 
+                            timestamp3={timestamp3}, 
+                            timestamp4={timestamp4} 
+                            WHERE request_index={request_index};''')
+            conn.commit()
+        except Exception as e:
+            print(e)
+            return JsonResponse(result)
+        conn.close()
 
         result['status'] = 'OK'
 
