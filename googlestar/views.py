@@ -119,10 +119,10 @@ def ocr(request, content=None):
                 is_area_code = 1 if pn['area_code'][0] == 1 else 0
                 numbers = list(map(lambda x, y: add_dash(x, y), pn['numbers'], pn['area_code']))
                 n_candidates = pn['n_candidates']
-                pos1_x, pos1_y = pn['boxes'][0][0], pn['boxes'][0][1]
-                pos2_x, pos2_y = pn['boxes'][1][0], pn['boxes'][1][1]
-                pos3_x, pos3_y = pn['boxes'][2][0], pn['boxes'][2][1]
-                pos4_x, pos4_y = pn['boxes'][3][0], pn['boxes'][3][1]
+                pos1_x, pos1_y = float(pn['boxes'][0][0]), float(pn['boxes'][0][1])
+                pos2_x, pos2_y = float(pn['boxes'][1][0]), float(pn['boxes'][1][1])
+                pos3_x, pos3_y = float(pn['boxes'][2][0]), float(pn['boxes'][2][1])
+                pos4_x, pos4_y = float(pn['boxes'][3][0]), float(pn['boxes'][3][1])
 
                 cur = conn.cursor()
                 cur.execute(f"SELECT detected_index FROM googlestar_detectednumbers;")
@@ -195,7 +195,10 @@ def ocr(request, content=None):
         result['status'] = 'OK'
         result['index'] = request_index
         result = {**result, **response_data}
-        print(result)
+        
+        for x in result['results']:
+            print(x)
+
     return JsonResponse(result)
 
 

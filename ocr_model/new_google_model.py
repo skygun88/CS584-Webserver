@@ -73,7 +73,7 @@ def googlestar_request(fname, bbox_fname, cropped_dir):
 
     detected_pn = multi_pn_detector(total_output)
     for x in detected_pn['results']:
-        print(x)
+        # print(x)
         detected = x['numbers']
         area_code = x['area_code']
 
