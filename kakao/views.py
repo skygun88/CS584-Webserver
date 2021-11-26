@@ -90,7 +90,7 @@ def kakao_ocr(request, content=None):
 
         try:
             ''' Save request data to DB '''
-            conn = sqlite3.connect("/home/skygun/hci_server/hci_back/db.sqlite3")
+            conn = sqlite3.connect(settings.DB_ROOT)
             cur = conn.cursor()
 
             # Calculate request_index
@@ -219,35 +219,35 @@ def user_data(request, content=None):
         timestamp2 = int(request_dict.get('timestamp2'))
         timestamp3 = int(request_dict.get('timestamp3'))
         timestamp4 = int(request_dict.get('timestamp4'))
-        selected_pn_index = int(request_dict.get('position'))
+        # selected_pn_index = int(request_dict.get('position'))
         root_request_index = int(request_dict.get('root_index'))
         # selected_number = request_dict.get('numbers')
 
-        print(request_index, type(request_index))
-        print(root_request_index, type(root_request_index))
-        print(request_index, timestamp1, timestamp2, timestamp3, timestamp4, selected_pn_index, root_request_index)
+        # print(request_index, type(request_index))
+        # print(root_request_index, type(root_request_index))
+        # print(request_index, timestamp1, timestamp2, timestamp3, timestamp4, selected_pn_index, root_request_index)
         
-        try:
-            ''' Updata DB based on received data '''
-            conn = sqlite3.connect("/home/skygun/hci_server/hci_back/db.sqlite3")
-            cur = conn.cursor()
+        # try:
+        #     ''' Updata DB based on received data '''
+        #     conn = sqlite3.connect(settings.DB_ROOT)
+        #     cur = conn.cursor()
 
-            cur.execute(f'''UPDATE kakao_requestinfo 
-                            SET  
-                            is_response=True,  
-                            selected_pn_index={selected_pn_index}, 
-                            timestamp1={timestamp1}, 
-                            timestamp2={timestamp2}, 
-                            timestamp3={timestamp3}, 
-                            timestamp4={timestamp4}, 
-                            root_request_index={root_request_index} 
-                            WHERE request_index={request_index};''')
-            conn.commit()
-        except Exception as e:
-            print(e)
-            conn.close()
-            return JsonResponse(result)
-        conn.close()
+        #     cur.execute(f'''UPDATE kakao_requestinfo 
+        #                     SET  
+        #                     is_response=True,  
+        #                     selected_pn_index={selected_pn_index}, 
+        #                     timestamp1={timestamp1}, 
+        #                     timestamp2={timestamp2}, 
+        #                     timestamp3={timestamp3}, 
+        #                     timestamp4={timestamp4}, 
+        #                     root_request_index={root_request_index} 
+        #                     WHERE request_index={request_index};''')
+        #     conn.commit()
+        # except Exception as e:
+        #     print(e)
+        #     conn.close()
+        #     return JsonResponse(result)
+        # conn.close()
 
         result['status'] = 'OK'
 

@@ -3,3 +3,5 @@
 *.png
 *.jpeg
 *.JPG
+*.code-workspace
+*.pth
