@@ -72,29 +72,3 @@ def pn_detector(ocr_result: dict):
     output_json = outputJson(len(outputResults), outputResults).toJSON()
     output_dict = json.loads(output_json)
     return output_dict
-
-# def pn_detector(ocr_result: dict):
-#     inputWords = []
-#     for x in ocr_result['result']:
-#         inputWords.append("".join(x['recognition_words']))
-
-#     # remove all char except digits in inputWords and save tel no. in telNos
-#     telNos = []
-#     for x in inputWords:
-#         y = re.sub("[^0-9]", "", x)
-#         if len(y) > 0:
-#             telNos.append(y)
-
-#     # translate data and save in output
-#     outputResults = []
-#     for x in telNos:
-#         validity = checkAreaCode(x)
-#         if validity != -1:
-#             if len(validity) == 0:
-#                 result = outputJsonResults(0, x)
-#             else:
-#                 result = outputJsonResults(1, x)
-#             outputResults.append(result)
-#     output_json = outputJson(len(outputResults), outputResults).toJSON()
-#     output_dict = json.loads(output_json)
-#     return output_dict

@@ -30,6 +30,9 @@ def kakao_ocr(request, content=None):
         ''' Get request information from json '''
         user_id = request.POST.get('user_email')
         user_id = 'NULL' if user_id == None else user_id
+
+
+
         print(user_id)
         ori_img = request.FILES.get('img')
 
@@ -43,6 +46,7 @@ def kakao_ocr(request, content=None):
         abs_resized_img_dir = settings.MEDIA_ROOT+'/'+resized_img_dir
         abs_result_img_dir = settings.MEDIA_ROOT+'/'+result_img_dir
 
+        ''' Make uncreated directory'''
         if not os.path.isdir(abs_ori_img_dir):
             os.mkdir(abs_ori_img_dir)
         if not os.path.isdir(abs_resized_img_dir):
@@ -85,7 +89,7 @@ def kakao_ocr(request, content=None):
             return JsonResponse(result)
 
         try:
-            ''' Save data to DB '''
+            ''' Save request data to DB '''
             conn = sqlite3.connect("/home/skygun/hci_server/hci_back/db.sqlite3")
             cur = conn.cursor()
 
@@ -112,6 +116,7 @@ def kakao_ocr(request, content=None):
                             -1, # timestamp2
                             -1, # timestamp3
                             -1, # timestamp4
+                            request_index, # root_requst_index
                             )
 
             # save request data to RequestInfo Table
@@ -126,14 +131,18 @@ def kakao_ocr(request, content=None):
                                                             timestamp1, 
                                                             timestamp2, 
                                                             timestamp3, 
-                                                            timestamp4) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);''', request_data)
+                                                            timestamp4, 
+                                                            root_request_index) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);''', request_data)
             conn.commit()
         except Exception as e:
             print(e)
+            conn.close()
             return JsonResponse(result)
 
         try:
+            ''' Save detecetd number data '''
+            response_data = {'n_results': detected_pn['n_results'], 'results': []}
             for number_index, pn in enumerate(detected_pn['results']):
                 is_area_code = True if pn['area_code'] == 1 else False
                 number = pn['numbers']
@@ -170,14 +179,25 @@ def kakao_ocr(request, content=None):
                                                                     pos4_y) 
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);''', detected_numbers_data)
                 conn.commit()
+
+                response_data['results'].append({'area_code': pn['area_code'], 'numbers': pn['numbers'], 
+                                                    'pos1_x': pos1_x, 'pos1_y': pos1_y,
+                                                    'pos2_x': pos2_x, 'pos2_y': pos2_y,
+                                                    'pos3_x': pos3_x, 'pos3_y': pos3_y,
+                                                    'pos4_x': pos4_x, 'pos4_y': pos4_y,
+                                                    })
         except Exception as e:
             print(e)
+            conn.close()
             return JsonResponse(result)
 
         conn.close()
         result['status'] = 'OK'
         result['index'] = request_index
-        result = {**result, **detected_pn}
+
+
+        result = {**result, **response_data}
+        print(result)
 
     # conn.close()
     return JsonResponse(result)
@@ -188,23 +208,30 @@ def user_data(request, content=None):
     print('user_data API executed')
     result = {'status': 'FAIL'}
     if request.method == 'POST':
-        request_dict = json.loads(request.body)
+        ''' Data query '''
+        # request_dict = json.loads(request.body)
+        request_dict = request.POST
+
+
         print(request_dict)
-        request_index = request_dict.get('index')
-        timestamp1 = request_dict.get('timestamp1')
-        timestamp2 = request_dict.get('timestamp2')
-        timestamp3 = request_dict.get('timestamp3')
-        timestamp4 = request_dict.get('timestamp4')
-        selected_pn_index = request_dict.get('position')
-        selected_number = request_dict.get('numbers')
+        request_index = int(request_dict.get('index'))
+        timestamp1 = int(request_dict.get('timestamp1'))
+        timestamp2 = int(request_dict.get('timestamp2'))
+        timestamp3 = int(request_dict.get('timestamp3'))
+        timestamp4 = int(request_dict.get('timestamp4'))
+        selected_pn_index = int(request_dict.get('position'))
+        root_request_index = int(request_dict.get('root_index'))
+        # selected_number = request_dict.get('numbers')
 
         print(request_index, type(request_index))
+        print(root_request_index, type(root_request_index))
+        print(request_index, timestamp1, timestamp2, timestamp3, timestamp4, selected_pn_index, root_request_index)
+        
         try:
-            ''' Save data to DB '''
+            ''' Updata DB based on received data '''
             conn = sqlite3.connect("/home/skygun/hci_server/hci_back/db.sqlite3")
             cur = conn.cursor()
 
-            # Calculate request_index
             cur.execute(f'''UPDATE kakao_requestinfo 
                             SET  
                             is_response=True,  
@@ -212,11 +239,13 @@ def user_data(request, content=None):
                             timestamp1={timestamp1}, 
                             timestamp2={timestamp2}, 
                             timestamp3={timestamp3}, 
-                            timestamp4={timestamp4} 
+                            timestamp4={timestamp4}, 
+                            root_request_index={root_request_index} 
                             WHERE request_index={request_index};''')
             conn.commit()
         except Exception as e:
             print(e)
+            conn.close()
             return JsonResponse(result)
         conn.close()
 

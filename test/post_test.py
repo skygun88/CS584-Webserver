@@ -26,10 +26,10 @@ user_data = {'index': index,
                 'timestamp3': ts3, 
                 'timestamp4': ts4, 
                 'position': position, 
-                'numbers': numbers}
+                'root_index': index}
 
 new_url = 'http://143.248.55.163:8000/kakao/user_data/'
-result = requests.post(new_url, data=json.dumps(user_data))
+result = requests.post(new_url, data=user_data)
 result_dict = result.json()
 print(result_dict)
 

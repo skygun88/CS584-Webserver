@@ -14,6 +14,7 @@ class RequestInfo(models.Model):
     timestamp2 = models.IntegerField(default=-1)
     timestamp3 = models.IntegerField(default=-1)
     timestamp4 = models.IntegerField(default=-1)
+    root_request_index = models.IntegerField(default=-1)
 
     class Meta:
         ordering = ['request_index']
@@ -36,3 +37,4 @@ class DetectedNumbers(models.Model):
     class Meta:
         unique_together = (('request_index', 'number_index'),)
         ordering = ['request_index', 'number_index']
+
