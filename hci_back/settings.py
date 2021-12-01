@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'kakao',
     'googlestar',
+    'ex1',
+    'ex2',
 ]
 
 MIDDLEWARE = [

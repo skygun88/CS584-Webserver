@@ -3,7 +3,7 @@ import time
 import sqlite3
 import datetime
 from PIL import Image
-from ocr_model.new_google_model import googlestar_request
+from ocr_model.new_google_model_ex2 import googlestar_request
 from ocr_model.recog_utils import add_dash
 from django.shortcuts import render
 from django.conf import settings

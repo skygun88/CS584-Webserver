@@ -20,4 +20,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('kakao/', include('kakao.urls')),
     path('googlestar/', include('googlestar.urls')),
+    path('ex1/', include('ex1.urls')),
+    path('ex2/', include('ex2.urls')),
 ]

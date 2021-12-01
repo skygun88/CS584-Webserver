@@ -1,5 +1,6 @@
 import os
 import time
+import random
 import sqlite3
 import datetime
 from PIL import Image
@@ -118,6 +119,9 @@ def ocr(request, content=None):
             for number_index, pn in enumerate(detected_pn['results']):
                 is_area_code = 1 if pn['area_code'][0] == 1 else 0
                 numbers = list(map(lambda x, y: add_dash(x, y), pn['numbers'], pn['area_code']))
+                
+                ## EX1 - randomly shuffle the number list
+                random.shuffle(numbers)
                 n_candidates = pn['n_candidates']
                 pos1_x, pos1_y = float(pn['boxes'][0][0]), float(pn['boxes'][0][1])
                 pos2_x, pos2_y = float(pn['boxes'][1][0]), float(pn['boxes'][1][1])
@@ -186,8 +190,6 @@ def ocr(request, content=None):
                                                 'pos4_x': pos4_x, 'pos4_y': pos4_y,
                                                 })
 
-                    
-
         except Exception as e:
             print(e)
             return JsonResponse(result)
@@ -221,11 +223,6 @@ def user_data(request, content=None):
         selected_pn_index = int(request_dict.get('position'))
         called_number = request_dict.get('number')
         root_request_index = int(request_dict.get('root_index'))
-        # selected_number = request_dict.get('numbers')
-
-        # print(request_index, type(request_index))
-        # print(root_request_index, type(root_request_index))
-        # print(request_index, timestamp1, timestamp2, timestamp3, timestamp4, selected_pn_index, root_request_index)
         
         print(called_number)
         try:
